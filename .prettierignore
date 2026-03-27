@@ -1,0 +1,8 @@
+.next
+node_modules
+coverage
+PLAN.md
+ROADMAP.md
+PROJECT_DESIGN.md
+STATUS.json
+SLICES.json
