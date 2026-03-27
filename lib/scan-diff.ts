@@ -43,6 +43,7 @@ export function normalizeViolations(violations: AxeViolation[]): NormalizedNodeV
         description: violation.description,
         target,
         failureSummary: node.failureSummary,
+        tags: violation.tags,
       };
 
       const existing = deduped.get(key);

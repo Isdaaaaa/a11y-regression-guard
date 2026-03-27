@@ -5,6 +5,7 @@ import { runA11yComparison } from '@/lib/mock-scan-runner';
 import { ScanStatusCard } from '@/components/scan-status-card';
 import { SnapshotUpload } from '@/components/snapshot-upload';
 import { UrlField } from '@/components/url-field';
+import { NewRegressionsReport } from '@/components/new-regressions-report';
 import type { FormErrors, ScanReport, ScanStatus, SnapshotSelection } from '@/types/scan';
 
 const SCAN_STEPS = [
@@ -28,13 +29,6 @@ function isValidHttpUrl(value: string) {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function formatImpactLabel(impact: string | null) {
-  if (!impact) {
-    return 'unknown';
-  }
-  return impact;
 }
 
 export default function Home() {
@@ -273,65 +267,7 @@ export default function Home() {
         </section>
 
         <section className="space-y-6">
-          <article className="card">
-            <div className="flex items-center justify-between">
-              <h2 className="section-title">Findings</h2>
-              {report ? (
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                  {report.summary.regressionCount} regressions
-                </span>
-              ) : (
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                  Empty until first scan
-                </span>
-              )}
-            </div>
-
-            {!report ? (
-              <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-                <p className="font-semibold text-slate-800">No regressions to display yet</p>
-                <p className="mt-2">
-                  Run a baseline vs candidate scan to generate grouped findings, severity pills, and
-                  fix suggestions.
-                </p>
-                <ul className="mt-3 list-disc space-y-1 pl-5 text-slate-600">
-                  <li>Add both URLs on the left panel.</li>
-                  <li>Optionally upload a snapshot to compare visual context.</li>
-                  <li>
-                    Click <span className="font-semibold text-[var(--primary)]">Run Scan</span>.
-                  </li>
-                </ul>
-              </div>
-            ) : report.regressions.length === 0 ? (
-              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
-                <p className="font-semibold">No new accessibility regressions detected.</p>
-                <p className="mt-2 text-emerald-800">
-                  Baseline nodes: {report.summary.baselineViolationCount} • Candidate nodes:{' '}
-                  {report.summary.candidateViolationCount}
-                </p>
-              </div>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {report.regressions.map((regression) => (
-                  <article
-                    key={regression.key}
-                    className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-900">{regression.ruleId}</p>
-                      <span className="rounded-full bg-[var(--warning)]/20 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">
-                        {formatImpactLabel(regression.impact)}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-slate-700">{regression.help}</p>
-                    <p className="mt-2 font-[var(--font-mono)] text-xs text-slate-600">
-                      Target: {regression.target}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            )}
-          </article>
+          <NewRegressionsReport report={report} isLoading={status.stage === 'running'} />
 
           <article className="card">
             <h2 className="section-title">Detail Drawer</h2>

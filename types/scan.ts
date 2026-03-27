@@ -46,6 +46,7 @@ export type NormalizedNodeViolation = {
   description: string;
   target: string;
   failureSummary?: string;
+  tags?: string[];
 };
 
 export type ViolationDiff = {
