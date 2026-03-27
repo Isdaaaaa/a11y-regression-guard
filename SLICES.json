@@ -32,6 +32,6 @@
   {
     "id": "slice-006",
     "title": "Optional GitHub webhook/GHA stub for future CI",
-    "status": "todo"
+    "status": "in_progress"
   }
 ]
