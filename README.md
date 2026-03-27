@@ -30,6 +30,38 @@ Open <http://localhost:3000>.
 - `npm run test` — run Vitest test suite
 - `npm run test:watch` — watch mode tests
 
+## Optional GitHub webhook stub (future CI hook)
+
+Slice 006 adds a **feature-flagged webhook stub** for future GitHub Actions/CI integration.
+
+### Endpoint
+
+- `POST /api/github/webhook`
+
+### Environment flags
+
+- `GITHUB_WEBHOOK_STUB_ENABLED=true` — enables the endpoint behavior
+- `GITHUB_WEBHOOK_STUB_SECRET=<shared-secret>` — optional; when set, the request must include `x-hub-signature-256`
+
+When disabled (default), the endpoint returns a `not_enabled` response and does not process payloads.
+
+When enabled, the endpoint validates a minimal GitHub payload shape:
+
+- `x-github-event` header is required
+- JSON body must include `repository.full_name`
+- `action` is optional but must be a string if present
+
+A valid request returns `202` with `status: "stub_received"` and explicit messaging that no CI or PR automation is executed yet.
+
+### Intended future flow
+
+A later slice can connect this endpoint to:
+
+1. Verify webhook signatures cryptographically
+2. Trigger accessibility regression jobs (e.g., GitHub Actions workflow dispatch)
+3. Post or update PR comments with regression summaries
+4. Gate merges based on regression severity policy
+
 ## Design baseline
 
 Initial scaffold includes a design-aligned shell using:
