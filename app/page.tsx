@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { runA11yComparison } from '@/lib/mock-scan-runner';
 import { ScanStatusCard } from '@/components/scan-status-card';
 import { SnapshotUpload } from '@/components/snapshot-upload';
 import { UrlField } from '@/components/url-field';
-import type { FormErrors, ScanStatus, SnapshotSelection } from '@/types/scan';
+import type { FormErrors, ScanReport, ScanStatus, SnapshotSelection } from '@/types/scan';
 
 const SCAN_STEPS = [
   'Capturing baseline snapshot',
@@ -29,11 +30,19 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function formatImpactLabel(impact: string | null) {
+  if (!impact) {
+    return 'unknown';
+  }
+  return impact;
+}
+
 export default function Home() {
   const [baselineUrl, setBaselineUrl] = useState('');
   const [candidateUrl, setCandidateUrl] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [snapshot, setSnapshot] = useState<SnapshotSelection | null>(null);
+  const [report, setReport] = useState<ScanReport | null>(null);
   const [status, setStatus] = useState<ScanStatus>({
     stage: 'idle',
     stepLabel: 'Ready to scan',
@@ -126,6 +135,7 @@ export default function Home() {
       return;
     }
 
+    setReport(null);
     startedAtRef.current = Date.now();
 
     if (elapsedTimerRef.current) {
@@ -155,8 +165,8 @@ export default function Home() {
       });
     }, 250);
 
-    for (let index = 0; index < SCAN_STEPS.length; index += 1) {
-      await sleep(700);
+    for (let index = 0; index < SCAN_STEPS.length - 1; index += 1) {
+      await sleep(400);
       const stepProgress = Math.round(((index + 1) / SCAN_STEPS.length) * 100);
       setStatus((current) => ({
         ...current,
@@ -166,12 +176,27 @@ export default function Home() {
       }));
     }
 
+    const nextReport = await runA11yComparison({
+      baselineUrl: baselineUrl.trim(),
+      candidateUrl: candidateUrl.trim(),
+    });
+
+    setStatus((current) => ({
+      ...current,
+      stage: 'running',
+      stepLabel: SCAN_STEPS[3],
+      progress: 95,
+    }));
+
+    await sleep(250);
+
     if (elapsedTimerRef.current) {
       clearInterval(elapsedTimerRef.current);
     }
 
     const elapsedMs = startedAtRef.current ? Date.now() - startedAtRef.current : 0;
 
+    setReport(nextReport);
     setStatus({
       stage: 'complete',
       stepLabel: 'Completed',
@@ -189,6 +214,7 @@ export default function Home() {
       progress: 0,
       elapsedMs: 0,
     });
+    setReport(null);
     setErrors({});
   }
 
@@ -250,31 +276,76 @@ export default function Home() {
           <article className="card">
             <div className="flex items-center justify-between">
               <h2 className="section-title">Findings</h2>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                Empty until first scan
-              </span>
+              {report ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                  {report.summary.regressionCount} regressions
+                </span>
+              ) : (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                  Empty until first scan
+                </span>
+              )}
             </div>
 
-            <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-              <p className="font-semibold text-slate-800">No regressions to display yet</p>
-              <p className="mt-2">
-                Run a baseline vs candidate scan to generate grouped findings, severity pills, and
-                fix suggestions.
-              </p>
-              <ul className="mt-3 list-disc space-y-1 pl-5 text-slate-600">
-                <li>Add both URLs on the left panel.</li>
-                <li>Optionally upload a snapshot to compare visual context.</li>
-                <li>Click <span className="font-semibold text-[var(--primary)]">Run Scan</span>.</li>
-              </ul>
-            </div>
+            {!report ? (
+              <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
+                <p className="font-semibold text-slate-800">No regressions to display yet</p>
+                <p className="mt-2">
+                  Run a baseline vs candidate scan to generate grouped findings, severity pills, and
+                  fix suggestions.
+                </p>
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-slate-600">
+                  <li>Add both URLs on the left panel.</li>
+                  <li>Optionally upload a snapshot to compare visual context.</li>
+                  <li>
+                    Click <span className="font-semibold text-[var(--primary)]">Run Scan</span>.
+                  </li>
+                </ul>
+              </div>
+            ) : report.regressions.length === 0 ? (
+              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
+                <p className="font-semibold">No new accessibility regressions detected.</p>
+                <p className="mt-2 text-emerald-800">
+                  Baseline nodes: {report.summary.baselineViolationCount} • Candidate nodes:{' '}
+                  {report.summary.candidateViolationCount}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {report.regressions.map((regression) => (
+                  <article
+                    key={regression.key}
+                    className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900">{regression.ruleId}</p>
+                      <span className="rounded-full bg-[var(--warning)]/20 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">
+                        {formatImpactLabel(regression.impact)}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-700">{regression.help}</p>
+                    <p className="mt-2 font-[var(--font-mono)] text-xs text-slate-600">
+                      Target: {regression.target}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
           </article>
 
           <article className="card">
             <h2 className="section-title">Detail Drawer</h2>
-            <p className="mt-3 text-sm text-slate-600">
-              Select a finding after a completed scan to inspect WCAG references, locators, and
-              suggested remediation text.
-            </p>
+            {report ? (
+              <p className="mt-3 text-sm text-slate-600">
+                Select a finding in the next slice to view WCAG references and remediation text.
+                Current scan includes {report.regressions.length} regression entries.
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-slate-600">
+                Select a finding after a completed scan to inspect WCAG references, locators, and
+                suggested remediation text.
+              </p>
+            )}
           </article>
         </section>
       </main>
