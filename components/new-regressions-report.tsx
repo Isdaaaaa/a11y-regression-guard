@@ -1,15 +1,29 @@
-import { createGroupedRegressionReport, type GroupedRegressionReport, type SeverityKey } from '@/lib/regression-report';
+import {
+  createGroupedRegressionReport,
+  type GroupedRegressionReport,
+  type SeverityKey,
+} from '@/lib/regression-report';
 import { SeverityPill } from '@/components/severity-pill';
-import type { ScanReport } from '@/types/scan';
+import type { NormalizedNodeViolation, ScanReport } from '@/types/scan';
 
 type NewRegressionsReportProps = {
   report: ScanReport | null;
   isLoading: boolean;
+  selectedKey: string | null;
+  onSelectRegression: (regression: NormalizedNodeViolation) => void;
 };
 
 const SEVERITY_ORDER: SeverityKey[] = ['critical', 'serious', 'moderate', 'minor'];
 
-function SummaryCard({ label, value, tone = 'neutral' }: { label: string; value: number; tone?: 'neutral' | SeverityKey }) {
+function SummaryCard({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: number;
+  tone?: 'neutral' | SeverityKey;
+}) {
   const styles: Record<'neutral' | SeverityKey, string> = {
     neutral: 'border-slate-200 bg-slate-50 text-slate-800',
     critical: 'border-[var(--critical)]/25 bg-[var(--critical)]/8 text-[var(--critical)]',
@@ -73,19 +87,33 @@ function ZeroRegressionState({ report }: { report: ScanReport }) {
     <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
       <p className="font-semibold">No new accessibility regressions detected.</p>
       <p className="mt-2 text-emerald-800">
-        Baseline nodes: {report.summary.baselineViolationCount} • Candidate nodes: {report.summary.candidateViolationCount}
+        Baseline nodes: {report.summary.baselineViolationCount} • Candidate nodes:{' '}
+        {report.summary.candidateViolationCount}
       </p>
     </div>
   );
 }
 
-function Findings({ grouped }: { grouped: GroupedRegressionReport }) {
+function Findings({
+  grouped,
+  selectedKey,
+  onSelectRegression,
+}: {
+  grouped: GroupedRegressionReport;
+  selectedKey: string | null;
+  onSelectRegression: (regression: NormalizedNodeViolation) => void;
+}) {
   return (
     <div className="mt-4 space-y-4">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <SummaryCard label="Total" value={grouped.totalRegressions} />
         {SEVERITY_ORDER.map((severity) => (
-          <SummaryCard key={severity} label={severity} value={grouped.severityCounts[severity]} tone={severity} />
+          <SummaryCard
+            key={severity}
+            label={severity}
+            value={grouped.severityCounts[severity]}
+            tone={severity}
+          />
         ))}
       </div>
 
@@ -115,18 +143,32 @@ function Findings({ grouped }: { grouped: GroupedRegressionReport }) {
             </div>
 
             <div className="mt-3 space-y-2.5">
-              {group.regressions.map((regression) => (
-                <article key={regression.key} className="rounded-lg border border-slate-200/90 bg-slate-50 p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-900">{regression.ruleId}</p>
-                    <SeverityPill severity={regression.impact} />
-                  </div>
-                  <p className="mt-1.5 text-sm text-slate-700">{regression.help}</p>
-                  <p className="mt-2 rounded-md bg-white px-2 py-1 font-[var(--font-mono)] text-xs text-slate-600">
-                    {regression.target}
-                  </p>
-                </article>
-              ))}
+              {group.regressions.map((regression) => {
+                const isSelected = selectedKey === regression.key;
+
+                return (
+                  <button
+                    key={regression.key}
+                    type="button"
+                    aria-pressed={isSelected}
+                    className={`w-full rounded-lg border p-3 text-left transition ${
+                      isSelected
+                        ? 'border-[var(--primary)] bg-[var(--primary)]/5 shadow-sm'
+                        : 'border-slate-200/90 bg-slate-50 hover:border-[var(--accent)]/45 hover:bg-[var(--accent)]/8'
+                    }`}
+                    onClick={() => onSelectRegression(regression)}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900">{regression.ruleId}</p>
+                      <SeverityPill severity={regression.impact} />
+                    </div>
+                    <p className="mt-1.5 text-sm text-slate-700">{regression.help}</p>
+                    <p className="mt-2 rounded-md bg-white px-2 py-1 font-[var(--font-mono)] text-xs text-slate-600">
+                      {regression.target}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           </section>
         ))}
@@ -135,7 +177,12 @@ function Findings({ grouped }: { grouped: GroupedRegressionReport }) {
   );
 }
 
-export function NewRegressionsReport({ report, isLoading }: NewRegressionsReportProps) {
+export function NewRegressionsReport({
+  report,
+  isLoading,
+  selectedKey,
+  onSelectRegression,
+}: NewRegressionsReportProps) {
   const grouped = report ? createGroupedRegressionReport(report.regressions) : null;
 
   return (
@@ -160,7 +207,7 @@ export function NewRegressionsReport({ report, isLoading }: NewRegressionsReport
       ) : report.regressions.length === 0 ? (
         <ZeroRegressionState report={report} />
       ) : grouped ? (
-        <Findings grouped={grouped} />
+        <Findings grouped={grouped} selectedKey={selectedKey} onSelectRegression={onSelectRegression} />
       ) : null}
     </article>
   );
