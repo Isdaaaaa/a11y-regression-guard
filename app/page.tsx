@@ -6,6 +6,7 @@ import { ScanStatusCard } from '@/components/scan-status-card';
 import { SnapshotUpload } from '@/components/snapshot-upload';
 import { UrlField } from '@/components/url-field';
 import { NewRegressionsReport } from '@/components/new-regressions-report';
+import { RegressionDetailDrawer } from '@/components/regression-detail-drawer';
 import type { FormErrors, ScanReport, ScanStatus, SnapshotSelection } from '@/types/scan';
 
 const SCAN_STEPS = [
@@ -37,6 +38,7 @@ export default function Home() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [snapshot, setSnapshot] = useState<SnapshotSelection | null>(null);
   const [report, setReport] = useState<ScanReport | null>(null);
+  const [selectedRegressionKey, setSelectedRegressionKey] = useState<string | null>(null);
   const [status, setStatus] = useState<ScanStatus>({
     stage: 'idle',
     stepLabel: 'Ready to scan',
@@ -51,6 +53,14 @@ export default function Home() {
     () => baselineUrl.trim().length > 0 && candidateUrl.trim().length > 0,
     [baselineUrl, candidateUrl],
   );
+
+  const selectedRegression = useMemo(() => {
+    if (!report || !selectedRegressionKey) {
+      return null;
+    }
+
+    return report.regressions.find((regression) => regression.key === selectedRegressionKey) ?? null;
+  }, [report, selectedRegressionKey]);
 
   useEffect(() => {
     return () => {
@@ -130,6 +140,7 @@ export default function Home() {
     }
 
     setReport(null);
+    setSelectedRegressionKey(null);
     startedAtRef.current = Date.now();
 
     if (elapsedTimerRef.current) {
@@ -208,8 +219,13 @@ export default function Home() {
       progress: 0,
       elapsedMs: 0,
     });
+    setSelectedRegressionKey(null);
     setReport(null);
     setErrors({});
+  }
+
+  function handleSelectRegression(regressionKey: string) {
+    setSelectedRegressionKey(regressionKey);
   }
 
   return (
@@ -267,22 +283,14 @@ export default function Home() {
         </section>
 
         <section className="space-y-6">
-          <NewRegressionsReport report={report} isLoading={status.stage === 'running'} />
+          <NewRegressionsReport
+            report={report}
+            isLoading={status.stage === 'running'}
+            selectedKey={selectedRegressionKey}
+            onSelectRegression={(regression) => handleSelectRegression(regression.key)}
+          />
 
-          <article className="card">
-            <h2 className="section-title">Detail Drawer</h2>
-            {report ? (
-              <p className="mt-3 text-sm text-slate-600">
-                Select a finding in the next slice to view WCAG references and remediation text.
-                Current scan includes {report.regressions.length} regression entries.
-              </p>
-            ) : (
-              <p className="mt-3 text-sm text-slate-600">
-                Select a finding after a completed scan to inspect WCAG references, locators, and
-                suggested remediation text.
-              </p>
-            )}
-          </article>
+          <RegressionDetailDrawer selectedRegression={selectedRegression} hasReport={Boolean(report)} />
         </section>
       </main>
 
