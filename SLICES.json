@@ -1,0 +1,37 @@
+[
+  {
+    "id": "slice-000",
+    "title": "Bootstrap repo, scaffolding, lint/format",
+    "status": "todo"
+  },
+  {
+    "id": "slice-001",
+    "title": "Dual URL input + snapshot upload flow",
+    "status": "todo"
+  },
+  {
+    "id": "slice-002",
+    "title": "Axe-core scan runner and violation diffing",
+    "status": "todo"
+  },
+  {
+    "id": "slice-003",
+    "title": "New-regressions report UI with severity & components",
+    "status": "todo"
+  },
+  {
+    "id": "slice-004",
+    "title": "Guided fix suggestions and code snippet templates",
+    "status": "todo"
+  },
+  {
+    "id": "slice-005",
+    "title": "Export/PR comment markdown + sample dataset",
+    "status": "todo"
+  },
+  {
+    "id": "slice-006",
+    "title": "Optional GitHub webhook/GHA stub for future CI",
+    "status": "todo"
+  }
+]
