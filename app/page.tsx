@@ -7,6 +7,8 @@ import { SnapshotUpload } from '@/components/snapshot-upload';
 import { UrlField } from '@/components/url-field';
 import { NewRegressionsReport } from '@/components/new-regressions-report';
 import { RegressionDetailDrawer } from '@/components/regression-detail-drawer';
+import { ExportBar } from '@/components/export-bar';
+import { SAMPLE_SCENARIOS, type SampleScenario } from '@/lib/sample-scenarios';
 import type { FormErrors, ScanReport, ScanStatus, SnapshotSelection } from '@/types/scan';
 
 const SCAN_STEPS = [
@@ -210,9 +212,9 @@ export default function Home() {
     });
   }
 
-  function handleLoadSampleData() {
-    setBaselineUrl('https://baseline.example.com/checkout');
-    setCandidateUrl('https://candidate.example.com/checkout');
+  function handleLoadSampleData(scenario: SampleScenario) {
+    setBaselineUrl(scenario.baselineUrl);
+    setCandidateUrl(scenario.candidateUrl);
     setStatus({
       stage: 'idle',
       stepLabel: 'Ready to scan',
@@ -280,6 +282,8 @@ export default function Home() {
           </article>
 
           <ScanStatusCard status={status} />
+
+          <ExportBar report={report} baselineUrl={baselineUrl} candidateUrl={candidateUrl} />
         </section>
 
         <section className="space-y-6">
@@ -303,13 +307,20 @@ export default function Home() {
             WCAG References
           </a>
           <span>•</span>
-          <button
-            type="button"
-            className="font-medium text-[var(--primary)]"
-            onClick={handleLoadSampleData}
-          >
-            Load Sample URLs
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-slate-500">Sample scenarios:</span>
+            {SAMPLE_SCENARIOS.map((scenario) => (
+              <button
+                key={scenario.id}
+                type="button"
+                className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-[var(--primary)] transition hover:border-[var(--accent)]/45 hover:bg-[var(--accent)]/8"
+                onClick={() => handleLoadSampleData(scenario)}
+                title={scenario.description}
+              >
+                {scenario.name}
+              </button>
+            ))}
+          </div>
         </div>
       </footer>
     </div>
