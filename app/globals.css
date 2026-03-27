@@ -63,3 +63,13 @@ body {
   outline-offset: 1px;
   border-color: var(--accent);
 }
+
+.input-error {
+  border-color: color-mix(in srgb, var(--critical) 70%, white);
+  background: color-mix(in srgb, var(--critical) 5%, white);
+}
+
+.input-error:focus {
+  outline: 2px solid color-mix(in srgb, var(--critical) 40%, white);
+  border-color: var(--critical);
+}
